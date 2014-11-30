@@ -1,0 +1,149 @@
+#!/usr/bin/env python
+
+import sys
+import os
+import optparse
+import simplejson as json
+import http_parser.http
+from sendfile import sendfile
+from os.path import dirname
+from templating.templater import Templater
+
+
+def main( argv, stdin, stdout, stderr ):
+
+  # TODO add a dependency scanner mode
+  prog = argv[0].split('/')[-1]
+  optp = optparse.OptionParser()
+  optp.add_option( '-H', '--http', help="HTTP mode. Read request from stdin, write response to stdout.", action="store_true")
+  opts, args = optp.parse_args( args=argv[1:] )
+
+  template_root = args.pop(0)
+  content_root = args.pop(0)
+  static_root = args.pop(0)
+
+  # TODO clean up the HTTP-specific stuff a bit:
+  # - separate out the core of non-HTTP-specific operations
+  # - throw typed exceptions and interpret them specially in HTTP mode
+
+  if opts.http:
+    parser = http_parser.http.HttpStream( stdin, kind=http_parser.http.HTTP_REQUEST )
+    wsgi_env = parser.wsgi_environ()
+    request_method = wsgi_env['REQUEST_METHOD']
+    request_path = wsgi_env['PATH_INFO']
+    request_length = wsgi_env.get('HTTP_CONTENT_LENGTH',0)
+    request_body = parser.body_file()
+  else:
+    request_method = 'GET'
+    request_path = args.pop(0)
+    request_body = file('/dev/null')
+
+  if request_method != 'GET':
+    if opts.http:
+      print >> stdout, "HTTP/1.0 405 Method Not Allowed\r\n",
+      print >> stdout, "Content-Length: 0\r\n",
+      print >> stdout, "Connection: close\r\n",
+      print >> stdout, "\r\n",
+    return 100
+
+  # FIXME make sure request is safe (no `..`)
+
+  # Turn trailing slash into .html, /foo/bar/ => /foo/bar.html
+  if request_path.endswith('/'):
+    request_path = request_path[0:-1]+'.html'
+
+  # Look for content at same path, but with markdown extension, /foo/bar.html => /foo/bar.md
+  content_path = request_path
+  if content_path.endswith('.html'):
+    content_path = content_path[0:-5]+'.md'
+
+  full_template_path = template_root+'/'+request_path
+  full_content_path  = content_root+'/'+content_path
+  full_static_path   = static_root+'/'+request_path
+
+  # If no template at this path, try to serve up a static file.
+  # TODO set Content-Type via a mime extension lookup table
+  if not os.path.exists( full_template_path ):
+    try:
+      static_file = file( full_static_path )
+      static_stat = os.stat( full_static_path )
+    except IOError, e:
+      if opts.http:
+        if e.errno == errno.ENOENT:
+          print >> stdout, "HTTP/1.0 404 Not Found\r\n",
+        elif e.errno == errno.EACCES:
+          print >> stdout, "HTTP/1.0 403 Forbidden\r\n",
+        else:
+          print >> stdout, "HTTP/1.0 500 Internal Server Error\r\n",
+        print >> stdout, "Content-Length: 0\r\n",
+        print >> stdout, "Connection: close\r\n",
+        print >> stdout, "\r\n",
+      return 100
+    if opts.http:
+      print >> stdout, "HTTP/1.0 200 OK\r\n",
+      print >> stdout, "Content-Length: %d\r\n" % static_stat.st_size,
+      print >> stdout, "Connection: close\r\n",
+      print >> stdout, "\r\n",
+    rfd = static_file.fileno()
+    wfd = stdout.fileno()
+    offset = 0
+    remaining = static_stat.st_size
+    while remaining > 0:
+      sent = sendfile( wfd, rfd, offset, remaining )
+      if sent == 0: break
+      offset += sent
+      remaining -= sent
+    return 0
+
+  templater = Templater([ template_root ])
+  template = templater.get_template( request_path )
+
+  data, content = load_content( full_content_path )
+  data['content'] = content
+
+  # Render and output the template.
+
+  output = template.render( **data ).encode('utf-8')
+
+  if opts.http:
+    print >> stdout, "HTTP/1.0 200 OK\r\n",
+    print >> stdout, "Content-Length: %d\r\n" % len(output),
+    print >> stdout, "Content-Type: %s\r\n" % "text/html",   # TODO perhaps data can override this
+    print >> stdout, "Connection: close\r\n",
+    print >> stdout, "Date: %s\r\n" % "foo",
+    print >> stdout, "\r\n",
+
+  print >> stdout, output
+
+  # TODO drain request_body here
+
+  return 0
+
+
+def load_content( content_path ):
+  in_header = False
+  data = ''
+  content = ''
+
+  with file(content_path) as f:
+    for linenum, line in enumerate(f):
+
+      if linenum == 0 and line == '{\n':
+        in_header = True
+      elif in_header and line == '\n':
+        in_header = False
+
+      if in_header:
+        data += line
+      else:
+        content += line
+
+  # TODO process embedded #include directives in the JSON here
+  data = json.loads(data) if data else {}
+  return data, content
+
+
+if __name__ == '__main__':
+  import sys
+  sys.exit( main( sys.argv, sys.stdin, sys.stdout, sys.stderr ) )
+
