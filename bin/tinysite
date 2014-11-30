@@ -6,6 +6,7 @@ import os
 import errno
 import optparse
 import simplejson as json
+from os.path import normpath
 from http_parser.http import HttpStream, HTTP_REQUEST
 from mimetypes import guess_type
 from sendfile import sendfile
@@ -52,7 +53,17 @@ def main( argv, stdin, stdout, stderr ):
       print >> stdout, "\r\n",
     return 100
 
-  # FIXME make sure request is safe (no `..`)
+  # Sanitize request path: don't let it escape the root.
+  request_path = request_path[1:] if request_path.startswith('/') else request_path
+  request_path = normpath( request_path )
+  if request_path.startswith('../'):
+    if opts.http:
+      print >> stdout, "HTTP/1.0 400 Bad Request\r\n",
+      print >> stdout, "Content-Length: 0\r\n",
+      print >> stdout, "Connection: close\r\n",
+      print >> stdout, "\r\n",
+    return 100
+  request_path = '/'+request_path
 
   # Turn trailing slash into .html, /foo/bar/ => /foo/bar.html
   if request_path.endswith('/'):
