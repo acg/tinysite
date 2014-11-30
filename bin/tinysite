@@ -81,8 +81,24 @@ def main( argv, stdin, stdout, stderr ):
   # If no template at this path, try to serve up a static file.
   if not os.path.exists( full_template_path ):
     try:
-      static_file = file( full_static_path )
-      static_stat = os.stat( full_static_path )
+      with file( full_static_path ) as static_file:
+        static_stat = os.stat( full_static_path )
+        if opts.http:
+          print >> stdout, "HTTP/1.0 200 OK\r\n",
+          print >> stdout, "Content-Length: %d\r\n" % static_stat.st_size,
+          print >> stdout, "Content-Type: %s\r\n" % guess_type(full_static_path)[0],
+          print >> stdout, "Connection: close\r\n",
+          print >> stdout, "\r\n",
+        rfd = static_file.fileno()
+        wfd = stdout.fileno()
+        offset = 0
+        remaining = static_stat.st_size
+        while remaining > 0:
+          sent = sendfile( wfd, rfd, offset, remaining )
+          if sent == 0: break
+          offset += sent
+          remaining -= sent
+        return 0
     except IOError, e:
       if opts.http:
         if e.errno == errno.ENOENT:
@@ -95,22 +111,6 @@ def main( argv, stdin, stdout, stderr ):
         print >> stdout, "Connection: close\r\n",
         print >> stdout, "\r\n",
       return 100
-    if opts.http:
-      print >> stdout, "HTTP/1.0 200 OK\r\n",
-      print >> stdout, "Content-Length: %d\r\n" % static_stat.st_size,
-      print >> stdout, "Content-Type: %s\r\n" % guess_type(full_static_path)[0],
-      print >> stdout, "Connection: close\r\n",
-      print >> stdout, "\r\n",
-    rfd = static_file.fileno()
-    wfd = stdout.fileno()
-    offset = 0
-    remaining = static_stat.st_size
-    while remaining > 0:
-      sent = sendfile( wfd, rfd, offset, remaining )
-      if sent == 0: break
-      offset += sent
-      remaining -= sent
-    return 0
 
   templater = Templater([ template_root ])
   template = templater.get_template( request_path )
