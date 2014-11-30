@@ -5,8 +5,8 @@ import os
 import optparse
 import simplejson as json
 import http_parser.http
+from mimetypes import guess_type
 from sendfile import sendfile
-from os.path import dirname
 from templating.templater import Templater
 
 
@@ -62,7 +62,6 @@ def main( argv, stdin, stdout, stderr ):
   full_static_path   = static_root+'/'+request_path
 
   # If no template at this path, try to serve up a static file.
-  # TODO set Content-Type via a mime extension lookup table
   if not os.path.exists( full_template_path ):
     try:
       static_file = file( full_static_path )
@@ -82,6 +81,7 @@ def main( argv, stdin, stdout, stderr ):
     if opts.http:
       print >> stdout, "HTTP/1.0 200 OK\r\n",
       print >> stdout, "Content-Length: %d\r\n" % static_stat.st_size,
+      print >> stdout, "Content-Type: %s\r\n" % guess_type(full_static_path)[0],
       print >> stdout, "Connection: close\r\n",
       print >> stdout, "\r\n",
     rfd = static_file.fileno()
