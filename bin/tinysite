@@ -54,8 +54,7 @@ def main( argv, stdin, stdout, stderr ):
     return 100
 
   # Sanitize request path: don't let it escape the root.
-  request_path = request_path[1:] if request_path.startswith('/') else request_path
-  request_path = normpath( request_path )
+  request_path = normpath( request_path.lstrip('/') )
   if request_path.startswith('../'):
     if opts.http:
       print >> stdout, "HTTP/1.0 400 Bad Request\r\n",
