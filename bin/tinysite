@@ -19,14 +19,14 @@ def main( argv, stdin, stdout, stderr ):
   # TODO add a dependency scanner mode
   prog = argv[0].split('/')[-1]
   optp = optparse.OptionParser()
+  optp.add_option( '-T', '--template-root', help="Path to templates directory.", default="templates")
+  optp.add_option( '-C', '--content-root', help="Path to content directory.", default="content")
+  optp.add_option( '-S', '--static-root', help="Path to static content directory.", default="static")
   optp.add_option( '-H', '--http', help="HTTP mode. Read request from stdin, write response to stdout.", action="store_true")
   opts, args = optp.parse_args( args=argv[1:] )
 
-  # TODO set these from environment and/or options
   config = Record()
-  config.template_root = args.pop(0)
-  config.content_root = args.pop(0)
-  config.static_root = args.pop(0)
+  config.update(filter( lambda kv: kv[1] != None, vars(opts).items() ))
 
   if opts.http:
     ok = http_serve( config, stdin, stdout )
