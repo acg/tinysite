@@ -17,7 +17,7 @@ pages : $(PAGES)
 
 $(OUT)/%.html : $(TEMPLATE_DIR)/%.html $(IN)/%.md
 	@ mkdir -p `dirname "$@"`
-	tinysite "$(TEMPLATE_DIR)" "$(IN)" "$(OUT)" "$(@:${OUT}%=%)" > "$@"
+	tinysite render "$(@:${OUT}%=%)" > "$@"
 
 sync : force
 	rsync -avzp --exclude ".*" "$(OUT)/" "$(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_DIR)/"
