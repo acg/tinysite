@@ -67,10 +67,14 @@ def resolve_path( path ):
   original_path, path = path, normpath( path.lstrip('/') )
   if path.startswith('../'):
     raise InvalidRequestPath("invalid request path: %s" % original_path)
+  elif path == '.':
+    path = ''
   path = '/'+path
 
   # Turn trailing slash into .html, /foo/bar/ => /foo/bar.html
-  if path.endswith('/'):
+  if path == '/':
+    path = '/index.html'
+  elif path.endswith('/'):
     path = path[0:-1]+'.html'
 
   return path
