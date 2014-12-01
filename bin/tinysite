@@ -32,14 +32,13 @@ def main( argv, stdin, stdout, stderr ):
   command = args.pop(0) if len(args) else None
 
   if command == 'render':
-    path = args.pop(0)
-    output = transform( config, path )
-    print >> stdout, output,
+    print >> stdout, transform( config, args.pop(0) )
     ok = True
   elif command == 'httpd':
     ok = http_serve( config, stdin, stdout )
   else:
     print >> stderr, "unknown command"
+    ok = False
 
   return 0 if ok else 100
 
