@@ -196,7 +196,11 @@ class Record( dict ):
 
 
 class InvalidRequestPath(Exception): pass
-class HttpError(Exception): pass   # TODO store code
+
+class HttpError(Exception):
+  def __init__(self, status):
+    self.status = status
+    self.message = "HTTP Error %d" % status
 
 
 if __name__ == '__main__':
