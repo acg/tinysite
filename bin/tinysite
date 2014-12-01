@@ -24,19 +24,22 @@ def main( argv, stdin, stdout, stderr ):
   optp.add_option( '-t', '--template-root', help="Path to templates directory.", default="templates")
   optp.add_option( '-c', '--content-root', help="Path to content directory.", default="content")
   optp.add_option( '-s', '--static-root', help="Path to static content directory.", default="static")
-  optp.add_option( '-H', '--http', help="HTTP mode. Read request from stdin, write response to stdout.", action="store_true")
   opts, args = optp.parse_args( args=argv[1:] )
 
   config = Record()
   config.update(filter( lambda kv: kv[1] != None, vars(opts).items() ))
 
-  if opts.http:
+  command = args.pop(0) if len(args) else None
+
+  if command == 'render':
+    path = args.pop(0)
+    output = transform( config, path )
+    print >> stdout, output,
+    ok = True
+  elif command == 'httpd':
     ok = http_serve( config, stdin, stdout )
   else:
-    ok = True
-    request_path = args.pop(0)
-    output = transform( config, request_path )
-    print >> stdout, output,
+    print >> stderr, "unknown command"
 
   return 0 if ok else 100
 
