@@ -81,6 +81,8 @@ def http_serve( config, stdin, stdout ):
   # Re-open the stdin and stdout file descriptors using raw unbuffered i/o.
   stdin = io.FileIO( stdin.fileno() )
   stdout = io.FileIO( stdout.fileno(), 'w' )
+
+  # Parse an HTTP request on stdin.
   parser = HttpStream( stdin, kind=HTTP_REQUEST )
   wsgi_env = parser.wsgi_environ()
   request_method = wsgi_env['REQUEST_METHOD']
@@ -100,23 +102,12 @@ def http_serve( config, stdin, stdout ):
 
     try:
       output = transform( config, request_path )
-      http_respond( stdout, 200, length=len(output), mimetype=mimetype )
-      print >> stdout, output,
+      http_respond( stdout, 200, mimetype=mimetype, body=output )
     except TemplateNotFound as e:
       # Retry as static file.
       full_static_path = config.static_root + path
       with file( full_static_path ) as static_file:
-        static_stat = os.stat( full_static_path )
-        http_respond( stdout, 200, length=static_stat.st_size, mimetype=mimetype )
-        rfd = static_file.fileno()
-        wfd = stdout.fileno()
-        offset = 0
-        remaining = static_stat.st_size
-        while remaining > 0:
-          sent = sendfile( wfd, rfd, offset, remaining )
-          if sent == 0: break
-          offset += sent
-          remaining -= sent
+        http_respond( stdout, 200, mimetype=mimetype, body=static_file )
 
     success = True
 
@@ -137,15 +128,35 @@ def http_serve( config, stdin, stdout ):
   return success
 
 
-def http_respond( stdout, status, reason=None, version="HTTP/1.0", length=0, mimetype='text/html' ):
+def http_respond( out, status, reason=None, version="HTTP/1.0", body=None, length=0, mimetype='text/html' ):
   # TODO prevent headers from being emitted a second time
-  print >> stdout, "%s %s %s\r\n" % (version, status, reason or status_reasons[status]),
-  print >> stdout, "Content-Length: %d\r\n" % (length),
-  print >> stdout, "Content-Type: %s\r\n" % (mimetype),
-  print >> stdout, "Connection: close\r\n",
-  print >> stdout, "Date: %s\r\n" % "foo",  # TODO emit an actual http date
-  print >> stdout, "\r\n",
 
+  if isinstance(body,basestring):
+    length = len(body)
+  elif isinstance(body,file):
+    stat = os.fstat(body.fileno())
+    length = stat.st_size
+
+  print >> out, "%s %s %s\r\n" % (version, status, reason or status_reasons[status]),
+  print >> out, "Content-Length: %d\r\n" % (length),
+  print >> out, "Content-Type: %s\r\n" % (mimetype),
+  print >> out, "Connection: close\r\n",
+  print >> out, "Date: %s\r\n" % "foo",  # TODO emit an actual http date
+  print >> out, "\r\n",
+
+  if isinstance(body,basestring):
+    print >> out, body,
+  elif isinstance(body,file):
+    rfd = body.fileno()
+    wfd = out.fileno()
+    offset = 0
+    while length > 0:
+      sent = sendfile( wfd, rfd, offset, length )
+      if sent == 0: break
+      offset += sent
+      length -= sent
+
+  return
 
 
 def load_content( content_path ):
