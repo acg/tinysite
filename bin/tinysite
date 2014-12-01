@@ -75,7 +75,7 @@ def resolve_path( path ):
   if path == '/':
     path = '/index.html'
   elif path.endswith('/'):
-    path = path[0:-1]+'.html'
+    path = path.rstrip('/')+'.html'
 
   return path
 
