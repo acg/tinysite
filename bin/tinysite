@@ -132,7 +132,7 @@ def http_serve( config, stdin, stdout ):
   return success
 
 
-def http_respond( out, status, reason=None, version="HTTP/1.0", body=None, length=0, mimetype='text/html' ):
+def http_respond( out, status, reason=None, version="HTTP/1.0", body=None, length=None, mimetype='text/html' ):
   # TODO prevent headers from being emitted a second time
 
   reason = reason or status_reasons[status]
@@ -140,11 +140,12 @@ def http_respond( out, status, reason=None, version="HTTP/1.0", body=None, lengt
   if body == None and status >= 400:
     body = "<html><body><h1>%d %s</h1></body></html>" % (status, reason)
 
-  if isinstance(body,basestring):
-    length = len(body)
-  elif isinstance(body,file):
-    stat = os.fstat(body.fileno())
-    length = stat.st_size
+  if length == None:
+    if isinstance(body,basestring):
+      length = len(body)
+    elif isinstance(body,file):
+      stat = os.fstat(body.fileno())
+      length = stat.st_size
 
   print >> out, "%s %s %s\r\n" % (version, status, reason),
   print >> out, "Content-Length: %d\r\n" % (length),
