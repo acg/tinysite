@@ -102,7 +102,7 @@ def http_serve( config, stdin, stdout ):
       raise HttpError(405)
 
     path = resolve_path(request_path)
-    mimetype = guess_type(request_path)[0]
+    mimetype = guess_type(path)[0]
 
     try:
       output = transform( config, request_path )
