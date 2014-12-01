@@ -5,6 +5,7 @@ import pkglist
 import templating.plugins
 import templating.filters
 import os
+from jinja2.exceptions import TemplateNotFound
 from os.path import normpath, relpath, splitext
 
 
