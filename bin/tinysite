@@ -21,9 +21,9 @@ def main( argv, stdin, stdout, stderr ):
   # TODO add a dependency scanner mode
   prog = argv[0].split('/')[-1]
   optp = optparse.OptionParser()
-  optp.add_option( '-t', '--template-root', help="Path to templates directory.", default="templates")
-  optp.add_option( '-c', '--content-root', help="Path to content directory.", default="content")
-  optp.add_option( '-s', '--static-root', help="Path to static content directory.", default="static")
+  optp.add_option( '-t', '--template-root', help="Path to templates directory.", default=os.environ.get('TEMPLATE_ROOT',"templates"))
+  optp.add_option( '-c', '--content-root', help="Path to content directory.", default=os.environ.get('CONTENT_ROOT',"content"))
+  optp.add_option( '-s', '--static-root', help="Path to static content directory.", default=os.environ.get('STATIC_ROOT',"static"))
   opts, args = optp.parse_args( args=argv[1:] )
 
   config = Record()

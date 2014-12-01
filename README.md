@@ -31,7 +31,7 @@ Code to write...
     - See if content/foo/bar.md exists.
       - Yes: invoke template rendering code and return a response.
       - No: fallback to a static sendfile call.
-  - In cli mode, we exercise the same flask route, but just write the response (minus HTTP headers) to stdout.
+  - In cli mode, we exercise the same route code, but just write the response (minus HTTP headers) to stdout.
 - Basic makefile which does: `templates/foo.html + content/foo.md => static/foo.html`
 - Clean up bin/templatize code.
   - Move into a library.

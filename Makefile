@@ -3,21 +3,25 @@ TINYSITE_ROOT ?= $(CURDIR)
 ### Custom shell for all rules in this Makefile.
 SHELL = sh -c '. "$$0"/etc/main.env && exec bash -o pipefail "$$@"' "$(TINYSITE_ROOT)"
 
-IN           ?= content
-OUT          ?= static
-TEMPLATE_DIR ?= templates
+CONTENT_ROOT  ?= content
+STATIC_ROOT   ?= static
+TEMPLATE_ROOT ?= templates
 
-CONTENT_FILES = $(shell find ${IN} -type f -a -name \*.md)
-PAGES         = $(CONTENT_FILES:${IN}/%.md=${OUT}/%.html)
+export CONTENT_ROOT
+export STATIC_ROOT
+export TEMPLATE_ROOT
+
+CONTENT_FILES = $(shell find ${CONTENT_ROOT} -type f -a -name \*.md)
+PAGES         = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${STATIC_ROOT}/%.html)
 
 
 all : pages
 
 pages : $(PAGES)
 
-$(OUT)/%.html : $(TEMPLATE_DIR)/%.html $(IN)/%.md
+$(STATIC_ROOT)/%.html : $(TEMPLATE_ROOT)/%.html $(CONTENT_ROOT)/%.md
 	@ mkdir -p `dirname "$@"`
-	tinysite render "$(@:${OUT}%=%)" > "$@"
+	tinysite render "$(@:${STATIC_ROOT}%=%)" > "$@"
 
 sync : force
 	rsync -avzp --exclude ".*" "$(OUT)/" "$(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_DIR)/"
