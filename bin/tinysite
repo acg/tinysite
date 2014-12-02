@@ -32,7 +32,7 @@ def main( argv, stdin, stdout, stderr ):
   command = args.pop(0) if len(args) else None
 
   if command == 'render':
-    print >> stdout, transform( config, args.pop(0) )
+    print >> stdout, render( config, args.pop(0) )
     ok = True
   elif command == 'httpd':
     ok = http_serve( config, stdin, stdout )
@@ -43,7 +43,9 @@ def main( argv, stdin, stdout, stderr ):
   return 0 if ok else 100
 
 
-def transform( config, path ):
+# Core functionality.
+
+def render( config, path ):
 
   path = resolve_path( path )
 
@@ -84,6 +86,29 @@ def resolve_path( path ):
   return path
 
 
+def load_content( content_path ):
+  in_header = False
+  data = ''
+  content = ''
+  with file(content_path) as f:
+    for linenum, line in enumerate(f):
+      # Recognize JSON data header.
+      if linenum == 0 and line == '{\n':
+        in_header = True
+      elif in_header and line == '\n':
+        in_header = False
+      # Accumulate data or content.
+      if in_header:
+        data += line
+      else:
+        content += line
+  # TODO process embedded #include directives in the JSON here
+  data = json.loads(data) if data else {}
+  return data, content
+
+
+# HTTP handling.
+
 def http_serve( config, stdin, stdout ):
 
   # Re-open the stdin and stdout file descriptors using raw unbuffered i/o.
@@ -109,7 +134,7 @@ def http_serve( config, stdin, stdout ):
     mimetype = guess_type(path)[0]
 
     try:
-      output = transform( config, request_path )
+      output = render( config, request_path )
       http_respond( stdout, 200, mimetype=mimetype, body=output )
     except TemplateNotFound as e:
       # Retry as static file.
@@ -141,9 +166,11 @@ def http_respond( out, status, reason=None, version="HTTP/1.0", body=None, lengt
 
   reason = reason or status_reasons[status]
 
+  # Basic http error page.
   if body == None and status >= 400:
     body = "<html><body><h1>%d %s</h1></body></html>" % (status, reason)
 
+  # Calculate content length from body.
   if length == None:
     if isinstance(body,basestring):
       length = len(body)
@@ -151,6 +178,7 @@ def http_respond( out, status, reason=None, version="HTTP/1.0", body=None, lengt
       stat = os.fstat(body.fileno())
       length = stat.st_size
 
+  # Output http headers.
   print >> out, "%s %s %s\r\n" % (version, status, reason),
   print >> out, "Content-Length: %d\r\n" % (length),
   print >> out, "Content-Type: %s\r\n" % (mimetype),
@@ -158,6 +186,7 @@ def http_respond( out, status, reason=None, version="HTTP/1.0", body=None, lengt
   print >> out, "Date: %s\r\n" % "foo",  # TODO emit an actual http date
   print >> out, "\r\n",
 
+  # Output http body, if we have one.
   if isinstance(body,basestring):
     print >> out, body,
   elif isinstance(body,file):
@@ -173,28 +202,7 @@ def http_respond( out, status, reason=None, version="HTTP/1.0", body=None, lengt
   return
 
 
-def load_content( content_path ):
-  in_header = False
-  data = ''
-  content = ''
-
-  with file(content_path) as f:
-    for linenum, line in enumerate(f):
-
-      if linenum == 0 and line == '{\n':
-        in_header = True
-      elif in_header and line == '\n':
-        in_header = False
-
-      if in_header:
-        data += line
-      else:
-        content += line
-
-  # TODO process embedded #include directives in the JSON here
-  data = json.loads(data) if data else {}
-  return data, content
-
+# Templating.
 
 class Templater( object ):
 
@@ -297,6 +305,8 @@ def iter_package_modules( pkg ):
       yield module, modname
 
 
+# Convenience class. A dict that allows foo.bar instead of just foo["bar"].
+
 class Record( dict ):
   def __getattr__( self, name ):
     return self[name]
@@ -305,6 +315,8 @@ class Record( dict ):
     return value
 
 
+# Exception types.
+
 class InvalidRequestPath(Exception): pass
 
 class HttpError(Exception):
@@ -312,6 +324,8 @@ class HttpError(Exception):
     self.status = status
     self.message = "HTTP Error %d" % status
 
+
+# Driver.
 
 if __name__ == '__main__':
   import sys
