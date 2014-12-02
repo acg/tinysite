@@ -14,6 +14,7 @@ from http_parser.util import status_reasons
 from sendfile import sendfile
 from mimetypes import guess_type
 import simplejson as json
+from markdown import Markdown
 
 
 def main( argv, stdin, stdout, stderr ):
@@ -243,7 +244,7 @@ class Templater( object ):
     except ImportError as e:
       filters_package = None
 
-    filters = {}
+    filters = { 'markdown': filter_markdown }
     for module, modname in iter_package_modules(filters_package) if filters_package else []:
       if hasattr(module,'FILTER'):
         filters[modname] = module.FILTER
@@ -281,6 +282,12 @@ class Templater( object ):
     jinja_template = jinja_env.get_template( template )
 
     return jinja_template
+
+
+def filter_markdown(value):
+  if not value: return value
+  md = Markdown()
+  return md.convert(unicode(value))
 
 
 def abspath( path ):
