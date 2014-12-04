@@ -5,7 +5,7 @@ import io
 import os
 import errno
 import optparse
-from os.path import normpath, relpath, splitext
+from os.path import normpath, relpath, dirname, splitext
 import pkgutil
 import jinja2
 from jinja2.exceptions import TemplateNotFound
@@ -15,6 +15,7 @@ from sendfile import sendfile
 from mimetypes import guess_type
 import simplejson as json
 from markdown import Markdown
+from ddata import dwalk, dmerge, DOP
 
 
 def main( argv, stdin, stdout, stderr ):
@@ -106,9 +107,42 @@ def load_content( content_path ):
         data += line
       else:
         content += line
-  # TODO process embedded #include directives in the JSON here
   data = json.loads(data) if data else {}
+  data = expand( data, cwd=dirname(content_path) )
   return data, content
+
+
+def expand( data, cwd=None ):
+
+  def expand_visitor( data, path ):
+
+    if not len(path): return
+    if not path[-1] in ['#include','#load','#extend']: return
+
+    directive = path[-1]
+    incdata = {}
+
+    for relpath in [ "%s/%s" % (cwd,incpath) for incpath in data ]:
+      if relpath.endswith('.json'):
+        with file(relpath) as f:
+          d = json.load(f)
+        if directive != '#load':
+          expand( d, cwd=dirname(relpath) )
+      else:
+        with file(relpath) as f:
+          d = f.read()
+      incdata = dmerge( incdata, d )
+
+    if directive == '#include' or directive == '#load':
+      return DOP( op='update',  key=path[-1], val=incdata )
+    elif directive == '#extend':
+      return DOP( op='prepend', key=path[-1], val=incdata )
+
+  def expand_orderer( a, b ):
+    # When walking dictionaries, we need to encounter #extend directives first.
+    return -(cmp(a=='#extend',b=='#extend')) or cmp(a,b)
+
+  return dwalk( data, expand_visitor, expand_orderer )
 
 
 # HTTP handling.
