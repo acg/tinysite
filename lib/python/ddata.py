@@ -71,9 +71,9 @@ def dwalk( data, visitor, orderer=None, path=None ):
   if not path:
     path = []
 
-  result = visitor( data, path )
+  result = visitor( data, path ) or DOP(op=None)
 
-  if not result or not result.op:
+  if not result.op:
     if isinstance(data,dict):
       d = dwalk_dict( data, visitor, orderer, path )
       data.clear()
@@ -93,7 +93,7 @@ def dwalk_dict( data, visitor, orderer, path ):
 
   for k in sorted( data.keys(), cmp=orderer ):
     v = data[k]
-    r = dwalk( v, visitor, orderer, path+[k] )
+    r = dwalk( v, visitor, orderer, path+[k] ) or DOP(op=None)
 
     if r.op == 'delete':
       pass
@@ -115,7 +115,7 @@ def dwalk_list( data, visitor, orderer, path ):
 
   for i in xrange(len(data)):
     v = data[i]
-    r = dwalk( v, visitor, orderer, path+[i] )
+    r = dwalk( v, visitor, orderer, path+[i] ) or DOP(op=None)
 
     if r.op == 'delete':
       pass
