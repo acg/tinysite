@@ -11,7 +11,7 @@ export CONTENT_ROOT
 export STATIC_ROOT
 export TEMPLATE_ROOT
 
-CONTENT_FILES = $(shell find ${CONTENT_ROOT} -type f -a -name \*.md)
+CONTENT_FILES = $(shell find ${CONTENT_ROOT} -type f -a -name \*.md -a -not -path "*/_*/*")
 PAGES         = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${STATIC_ROOT}/%.html)
 
 
