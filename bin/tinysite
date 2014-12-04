@@ -93,8 +93,11 @@ def load_content( content_path ):
   content = ''
   with file(content_path) as f:
     for linenum, line in enumerate(f):
+      # Skip an initial blank line.
+      if linenum == 0 and line == '\n':
+        continue
       # Recognize JSON data header.
-      if linenum == 0 and line == '{\n':
+      if linenum == 1 and line == '    {\n':
         in_header = True
       elif in_header and line == '\n':
         in_header = False
