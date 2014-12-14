@@ -3,6 +3,7 @@
 import sys
 import io
 import os
+import time
 import errno
 import optparse
 from os.path import normpath, relpath, dirname, splitext
@@ -221,7 +222,7 @@ def http_respond( out, status, reason=None, version="HTTP/1.0", body=None, lengt
   print >> out, "Content-Length: %d\r\n" % (length),
   print >> out, "Content-Type: %s\r\n" % (mimetype),
   print >> out, "Connection: close\r\n",
-  print >> out, "Date: %s\r\n" % "foo",  # TODO emit an actual http date
+  print >> out, "Date: %s\r\n" % time.strftime("%a, %d %b %Y %T %z"),
   print >> out, "\r\n",
 
   # Output http body, if we have one.
