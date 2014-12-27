@@ -180,13 +180,30 @@ def scan_data( data, filepath, dependencies=None, scanned=None ):
 # File dependency scanning.
 
 def scan( config, path ):
-  if path.startswith( config.content_root+'/' ):
-    data, content = load_content( path, expand=False )
-    dependencies = scan_data( data, path )
-  elif path.startswith( config.template_root+'/' ):
-    templater = Templater([ config.template_root ])
-    dependencies = templater.scan_template( path )
-  return dependencies
+
+  transitive_dependencies = []
+  static_path = config.static_root + path
+
+  # Content dependencies.
+
+  content_path = config.content_root + path
+  if content_path.endswith(".html"): content_path = content_path[:-5]+".md"
+  data, content = load_content( content_path, expand=False )
+  content_dependencies = scan_data( data, content_path )
+  for srcpath, dstpath in content_dependencies:
+    if srcpath == content_path:
+      transitive_dependencies.append( (static_path,dstpath,) )
+
+  # Template dependencies.
+
+  template_path = config.template_root + path
+  templater = Templater([ config.template_root ])
+  template_dependencies = templater.scan_template( template_path )
+  for srcpath, dstpath in template_dependencies:
+    if srcpath == template_path:
+      transitive_dependencies.append( (static_path,dstpath,) )
+
+  return transitive_dependencies + content_dependencies + template_dependencies
 
 
 # HTTP handling.

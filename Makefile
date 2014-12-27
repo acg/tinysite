@@ -6,6 +6,7 @@ SHELL = sh -c '. "$$0"/etc/main.env && exec bash -o pipefail "$$@"' "$(TINYSITE_
 CONTENT_ROOT  ?= content
 STATIC_ROOT   ?= static
 TEMPLATE_ROOT ?= templates
+BUILD_ROOT    ?= build
 
 export CONTENT_ROOT
 export STATIC_ROOT
@@ -13,6 +14,7 @@ export TEMPLATE_ROOT
 
 CONTENT_FILES = $(shell find ${CONTENT_ROOT} -type f -a -name \*.md -a -not -path "*/_*/*")
 PAGES         = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${STATIC_ROOT}/%.html)
+DEPS          = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${BUILD_ROOT}/%.html.d)
 
 
 all : pages
@@ -27,10 +29,22 @@ sync : force
 	rsync -avzp --exclude ".*" "$(OUT)/" "$(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_DIR)/"
 
 clean :
-	rm -f $(PAGES)
+	rm -f $(PAGES) $(DEPS)
 
 
-# TODO include *.d scanner-generated dependency files here.
+### Scan templates and content+data for file dependencies.
+### Ensures correct incremental builds.
+
+deps : $(DEPS)
+
+$(BUILD_ROOT)/%.html.d : $(TEMPLATE_ROOT)/%.html $(CONTENT_ROOT)/%.md
+	@ mkdir -p `dirname "$@"`
+	tinysite scan "$(@:${BUILD_ROOT}%.d=%)" > "$@"
+
+ifeq (, $(findstring $(MAKECMDGOALS), clean ))
+  -include $(DEPS)
+endif
+
 
 
 .PHONY : force
