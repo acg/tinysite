@@ -9,6 +9,7 @@ import optparse
 from os.path import normpath, relpath, dirname, splitext
 import pkgutil
 import jinja2
+import jinja2.meta
 from jinja2.exceptions import TemplateNotFound
 from http_parser.http import HttpStream, HTTP_REQUEST
 from http_parser.util import status_reasons
@@ -37,9 +38,14 @@ def main( argv, stdin, stdout, stderr ):
     print >> stdout, render( config, args.pop(0) )
     ok = True
   elif command == 'scan':
-    content_path = args.pop(0)
-    data, content = load_content( content_path, expand=False )
-    for srcpath, dstpath in scan_data( data, content_path ):
+    path = args.pop(0)
+    if path.startswith( config.content_root+'/' ):
+      data, content = load_content( content_path, expand=False )
+      dependencies = scan_data( data, content_path )
+    elif path.startswith( config.template_root+'/' ):
+      templater = Templater([ config.template_root ])
+      dependencies = templater.scan_template( path )
+    for srcpath, dstpath in dependencies:
       print "%s : %s\n\n" % (srcpath,dstpath),
     ok = True
   elif command == 'httpd':
@@ -329,29 +335,72 @@ class Templater( object ):
 
   def get_template( self, template, other_globals=None ):
 
-    # Allow template paths that are absolute, or that are relative to the
-    # current working directory, so long as they can be resolved to a
-    # path relative to one of the allowed template inclusion directories.
-
-    for incdir in self.template_includes:
-      p = relpath(abspath(template), start=abspath(incdir))
-      if not p.startswith('/') and not p.startswith('../'):
-        template = p
-        break
-
+    templatedir, template = self.resolve_template( template )
     ext = splitext(template)[1]
 
     # Set up and create a template object.
 
+    jinja_env = self.get_environment( autoescape=(ext in ('.html','.xml')), extensions=['jinja2.ext.autoescape'], other_globals=other_globals )
+    jinja_template = jinja_env.get_template( template )
+
+    return jinja_template
+
+
+  def scan_template( self, template, dependencies=None, scanned=None ):
+
+    dependencies = dependencies or []
+    scanned = scanned or set()
+    templatedir, template = self.resolve_template( template )
+    templatepath = "%s/%s" % (templatedir,template)
+    scanned.add(templatepath)
+    cwd = dirname(templatepath)
+
+    jinja_env = self.get_environment()
+    source = file(templatepath).read()
+    jinja_ast = jinja_env.parse( source, filename=templatepath )
+
+    for refpath in list(jinja2.meta.find_referenced_templates(jinja_ast)):
+      if not refpath: continue
+      refpath = normpath( "%s/%s" % (cwd,refpath) )
+      dependencies.append( (templatepath,refpath), )
+      if not refpath in scanned:
+        self.scan_template( refpath, dependencies, scanned )
+
+    return dependencies
+
+
+  def resolve_template( self, template, extra_includes=None ):
+
+    # Allow template paths that are absolute, or that are relative to the
+    # current working directory, so long as they can be resolved to a
+    # path relative to one of the allowed template inclusion directories.
+
+    templatedir = None
+    extra_includes = extra_includes or []
+
+    for incdir in extra_includes + self.template_includes:
+      p = relpath(abspath(template), start=abspath(incdir))
+      if not p.startswith('/') and not p.startswith('../'):
+        templatedir = incdir
+        template = p
+        break
+
+    return templatedir, template
+
+
+  def get_environment( self, autoescape=True, extensions=None, other_globals=None ):
+
+    # Set up and create a jinja template environment.
+
     jinja_loader = jinja2.FileSystemLoader( self.template_includes )
-    jinja_env = RelativeEnvironment( loader=jinja_loader, autoescape=(ext in ('.html','.xml')), extensions=['jinja2.ext.autoescape'] )
+    jinja_env = RelativeEnvironment( loader=jinja_loader, autoescape=autoescape, extensions=(extensions or []) )
     jinja_env.filters.update( self.filters )
     jinja_env.globals.update( plugins=self.plugins )
     jinja_env.globals.update( self.template_globals )
     jinja_env.globals.update( other_globals if other_globals else {} )
-    jinja_template = jinja_env.get_template( template )
 
-    return jinja_template
+    return jinja_env
+
 
 
 def filter_markdown(value):
