@@ -21,7 +21,6 @@ from ddata import dwalk, dmerge, DOP
 
 def main( argv, stdin, stdout, stderr ):
 
-  # TODO add a dependency scanner mode
   prog = argv[0].split('/')[-1]
   optp = optparse.OptionParser()
   optp.add_option( '-t', '--template-root', help="Path to templates directory.", default=os.environ.get('TEMPLATE_ROOT',"templates"))
@@ -36,6 +35,12 @@ def main( argv, stdin, stdout, stderr ):
 
   if command == 'render':
     print >> stdout, render( config, args.pop(0) )
+    ok = True
+  elif command == 'scan':
+    content_path = args.pop(0)
+    data, content = load_content( content_path, expand=False )
+    for srcpath, dstpath in scan_data( data, content_path ):
+      print "%s : %s\n\n" % (srcpath,dstpath),
     ok = True
   elif command == 'httpd':
     ok = http_serve( config, stdin, stdout )
@@ -89,7 +94,7 @@ def resolve_path( path ):
   return path
 
 
-def load_content( content_path ):
+def load_content( content_path, expand=True ):
   in_header = False
   data = ''
   content = ''
@@ -109,18 +114,20 @@ def load_content( content_path ):
       else:
         content += line
   data = json.loads(data) if data else {}
-  data = expand( data, cwd=dirname(content_path) )
+  data = expand_data( data, content_path ) if expand else data
   return data, content
 
 
-def expand( data, cwd=None ):
+def expand_data( data, filepath ):
 
-  def expand_visitor( data, path ):
+  cwd = dirname(filepath)
 
-    if not len(path): return
-    if not path[-1] in ['#include','#load','#extend']: return
+  def expand_visitor( data, datapath ):
 
-    directive = path[-1]
+    if not len(datapath): return
+    if not datapath[-1] in ['#include','#load','#extend']: return
+
+    directive = datapath[-1]
     incdata = {}
 
     for relpath in [ "%s/%s" % (cwd,incpath) for incpath in data ]:
@@ -128,22 +135,47 @@ def expand( data, cwd=None ):
         with file(relpath) as f:
           d = json.load(f)
         if directive != '#load':
-          expand( d, cwd=dirname(relpath) )
+          expand_data( d, relpath )
       else:
         with file(relpath) as f:
           d = f.read()
       incdata = dmerge( incdata, d )
 
     if directive == '#include' or directive == '#load':
-      return DOP( op='update',  key=path[-1], val=incdata )
+      return DOP( op='update',  key=datapath[-1], val=incdata )
     elif directive == '#extend':
-      return DOP( op='prepend', key=path[-1], val=incdata )
+      return DOP( op='prepend', key=datapath[-1], val=incdata )
 
   def expand_orderer( a, b ):
     # When walking dictionaries, we need to encounter #extend directives first.
     return -(cmp(a=='#extend',b=='#extend')) or cmp(a,b)
 
   return dwalk( data, expand_visitor, expand_orderer )
+
+
+def scan_data( data, filepath, dependencies=None, scanned=None ):
+
+  dependencies = dependencies or []
+  scanned = scanned or set()
+  filepath = normpath(filepath)
+  scanned.add(filepath)
+  cwd = dirname(filepath)
+
+  def scan_visitor( data, datapath ):
+    if not len(datapath): return
+    if not datapath[-1] in ['#include','#load','#extend']: return
+    directive = datapath[-1]
+
+    for relpath in [ normpath("%s/%s" % (cwd,incpath)) for incpath in data ]:
+      dependencies.append( (filepath,relpath,) )
+      if relpath in scanned: continue
+      if relpath.endswith('.json') and directive != '#load':
+        with file(relpath) as f:
+          d = json.load(f)
+          scan_data( d, relpath, dependencies, scanned )
+
+  dwalk( data, scan_visitor )
+  return dependencies
 
 
 # HTTP handling.

@@ -43,4 +43,7 @@ Code to write...
   - Use JSON for data header format instead of "Key: Value".
   - Make the JSON construct inclusion system more sane.
 - Need an inclusion scanner which generates the `*.d` files.
+  - Scanner for templates: use `jinja2.meta.find_referenced_templates`
+  x Scanner for content: refactor `expand_visitor` so it can be used in scanner mode. No need to load data from #load directives. For #include and #extend, need to load and recurse, but don't need to keep the loaded result.
+- Verify that #include, #load, and #extend all work properly.
 
