@@ -38,14 +38,7 @@ def main( argv, stdin, stdout, stderr ):
     print >> stdout, render( config, args.pop(0) )
     ok = True
   elif command == 'scan':
-    path = args.pop(0)
-    if path.startswith( config.content_root+'/' ):
-      data, content = load_content( content_path, expand=False )
-      dependencies = scan_data( data, content_path )
-    elif path.startswith( config.template_root+'/' ):
-      templater = Templater([ config.template_root ])
-      dependencies = templater.scan_template( path )
-    for srcpath, dstpath in dependencies:
+    for srcpath, dstpath in scan( config, args.pop(0) ):
       print "%s : %s\n\n" % (srcpath,dstpath),
     ok = True
   elif command == 'httpd':
@@ -181,6 +174,18 @@ def scan_data( data, filepath, dependencies=None, scanned=None ):
           scan_data( d, relpath, dependencies, scanned )
 
   dwalk( data, scan_visitor )
+  return dependencies
+
+
+# File dependency scanning.
+
+def scan( config, path ):
+  if path.startswith( config.content_root+'/' ):
+    data, content = load_content( path, expand=False )
+    dependencies = scan_data( data, path )
+  elif path.startswith( config.template_root+'/' ):
+    templater = Templater([ config.template_root ])
+    dependencies = templater.scan_template( path )
   return dependencies
 
 
