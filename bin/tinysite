@@ -152,7 +152,7 @@ def expand_data( data, filepath ):
   return dwalk( data, expand_visitor, expand_orderer )
 
 
-def scan_data( data, filepath, dependencies=None, scanned=None ):
+def scan_data( data, filepath, dependencies=None, scanned=None, recurse=True ):
 
   dependencies = dependencies or []
   scanned = scanned or set()
@@ -168,10 +168,11 @@ def scan_data( data, filepath, dependencies=None, scanned=None ):
     for relpath in [ normpath("%s/%s" % (cwd,incpath)) for incpath in data ]:
       dependencies.append( (filepath,relpath,) )
       if relpath in scanned: continue
+      if not recurse: continue
       if relpath.endswith('.json') and directive != '#load':
         with file(relpath) as f:
           d = json.load(f)
-          scan_data( d, relpath, dependencies, scanned )
+          scan_data( d, relpath, dependencies, scanned, recurse )
 
   dwalk( data, scan_visitor )
   return dependencies
@@ -407,7 +408,7 @@ class Templater( object ):
     return jinja_template
 
 
-  def scan_template( self, template, dependencies=None, scanned=None ):
+  def scan_template( self, template, dependencies=None, scanned=None, recurse=True ):
 
     dependencies = dependencies or []
     scanned = scanned or set()
@@ -424,8 +425,8 @@ class Templater( object ):
       if not refpath: continue
       refpath = normpath( "%s/%s" % (cwd,refpath) )
       dependencies.append( (templatepath,refpath), )
-      if not refpath in scanned:
-        self.scan_template( refpath, dependencies, scanned )
+      if not refpath in scanned and recurse:
+        self.scan_template( refpath, dependencies, scanned, recurse )
 
     return dependencies
 
