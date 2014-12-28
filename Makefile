@@ -11,6 +11,7 @@ BUILD_ROOT    ?= build
 export CONTENT_ROOT
 export STATIC_ROOT
 export TEMPLATE_ROOT
+export BUILD_ROOT
 
 CONTENT_FILES = $(shell find ${CONTENT_ROOT} -type f -a -name \*.md -a -not -path "*/_*/*")
 PAGES         = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${STATIC_ROOT}/%.html)
@@ -39,7 +40,7 @@ deps : $(DEPS)
 
 $(BUILD_ROOT)/%.html.d : $(TEMPLATE_ROOT)/%.html $(CONTENT_ROOT)/%.md
 	@ mkdir -p `dirname "$@"`
-	tinysite scan "$(@:${BUILD_ROOT}/%.d=${STATIC_ROOT}/%)" > "$@"
+	tinysite scan "$(@:${BUILD_ROOT}/%.d=${STATIC_ROOT}/%)" | perl -lne 'print; s@^$$ENV{STATIC_ROOT}(.+?) :@$$ENV{BUILD_ROOT}$$1.d :@ and do { print ""; print }' > "$@"
 
 ifeq (, $(findstring $(MAKECMDGOALS), clean ))
   -include $(DEPS)
