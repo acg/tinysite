@@ -40,7 +40,7 @@ deps : $(DEPS)
 
 $(BUILD_ROOT)/%.html.d : $(TEMPLATE_ROOT)/%.html $(CONTENT_ROOT)/%.md
 	@ mkdir -p `dirname "$@"`
-	tinysite scan "$(@:${BUILD_ROOT}/%.d=${STATIC_ROOT}/%)" | perl -lne 'print; s@^$$ENV{STATIC_ROOT}(.+?) :@$$ENV{BUILD_ROOT}$$1.d :@ and do { print ""; print }' > "$@"
+	tinysite scan "$(@:${BUILD_ROOT}/%.d=${STATIC_ROOT}/%)" | sed -nEe "p; s@^${STATIC_ROOT}(.+?) :@\n${BUILD_ROOT}\1.d :@p;" > "$@"
 
 ifeq (, $(findstring $(MAKECMDGOALS), clean ))
   -include $(DEPS)
