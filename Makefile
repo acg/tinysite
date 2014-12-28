@@ -39,7 +39,7 @@ deps : $(DEPS)
 
 $(BUILD_ROOT)/%.html.d : $(TEMPLATE_ROOT)/%.html $(CONTENT_ROOT)/%.md
 	@ mkdir -p `dirname "$@"`
-	tinysite scan "$(@:${BUILD_ROOT}%.d=%)" > "$@"
+	tinysite scan "$(@:${BUILD_ROOT}/%.d=${STATIC_ROOT}/%)" > "$@"
 
 ifeq (, $(findstring $(MAKECMDGOALS), clean ))
   -include $(DEPS)

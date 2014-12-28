@@ -181,29 +181,68 @@ def scan_data( data, filepath, dependencies=None, scanned=None ):
 
 def scan( config, path ):
 
-  transitive_dependencies = []
-  static_path = config.static_root + path
+  original_path = path
 
-  # Content dependencies.
+  if path.startswith( config.static_root ):
 
-  content_path = config.content_root + path
-  if content_path.endswith(".html"): content_path = content_path[:-5]+".md"
-  data, content = load_content( content_path, expand=False )
-  content_dependencies = scan_data( data, content_path )
-  for srcpath, dstpath in content_dependencies:
-    if srcpath == content_path:
-      transitive_dependencies.append( (static_path,dstpath,) )
+    # /static path. Compute transitive dependencies contributed by the content and the template.
 
-  # Template dependencies.
+    path = path[len(config.static_root):]
+    transitive = True
+    scan_content = True
+    scan_template = True
 
+  elif path.startswith( config.content_root ):
+
+    # /content path. Compute all content dependencies starting at this content file.
+
+    path = path[len(config.content_root):]
+    transitive = False
+    scan_content = True
+    scan_template = False
+
+  elif path.startswith( config.template_root ):
+
+    # /templates path. Compute all template dependencies starting at this template file.
+
+    path = path[len(config.template_root):]
+    transitive = False
+    scan_content = False
+    scan_template = True
+
+  else:
+
+    return []
+
+  # Reconstruct paths
+
+  static_path   = config.static_root + path
+  content_path  = config.content_root + path
   template_path = config.template_root + path
-  templater = Templater([ config.template_root ])
-  template_dependencies = templater.scan_template( template_path )
-  for srcpath, dstpath in template_dependencies:
-    if srcpath == template_path:
-      transitive_dependencies.append( (static_path,dstpath,) )
+  dependencies = []
 
-  return transitive_dependencies + content_dependencies + template_dependencies
+  if content_path.endswith(".html"):
+    content_path = content_path[:-5]+".md"
+
+  # Scan for content dependencies.
+
+  if scan_content:
+    data, content = load_content( content_path, expand=False )
+    dependencies += scan_data( data, content_path )
+
+  # Scan for template dependencies.
+
+  if scan_template:
+    templater = Templater([ config.template_root ])
+    dependencies += templater.scan_template( template_path )
+
+  # In transitive mode, report all transitive dependencies as
+  # direct dependencies of the original file.
+
+  if transitive:
+    return [ (original_path,dstpath) for srcpath,dstpath in dependencies ]
+  else:
+    return dependencies
 
 
 # HTTP handling.
