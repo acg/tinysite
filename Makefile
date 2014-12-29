@@ -1,7 +1,7 @@
 TINYSITE_ROOT ?= $(CURDIR)
 
 ### Custom shell for all rules in this Makefile.
-SHELL = sh -c '. "$$0"/etc/main.env && exec bash -o pipefail "$$@"' "$(TINYSITE_ROOT)"
+SHELL = bash -o pipefail -c
 
 CONTENT_ROOT  ?= content
 STATIC_ROOT   ?= static
