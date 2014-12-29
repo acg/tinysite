@@ -13,11 +13,18 @@ export STATIC_ROOT
 export TEMPLATE_ROOT
 export BUILD_ROOT
 
+REMOTE_USER   ?=
+REMOTE_HOST   ?=
+REMOTE_DIR    ?=
+
+LISTEN_HOST    ?= 127.0.0.1
+LISTEN_PORT    ?= 8484
+
 CONTENT_FILES = $(shell find ${CONTENT_ROOT} -type f -a -name \*.md -a -not -path "*/_*/*")
 PAGES         = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${STATIC_ROOT}/%.html)
 DEPS          = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${BUILD_ROOT}/%.html.d)
 
-### For highlighting.
+### For build rule highlighting.
 
 COLOR_BUILD = \e[36m
 COLOR_SCAN  = \e[35m
@@ -35,6 +42,10 @@ $(STATIC_ROOT)/%.html : $(TEMPLATE_ROOT)/%.html $(CONTENT_ROOT)/%.md
 	@   test -t 1 && printf "$(COLOR_RESET)" || true
 	@   printf " %s\n" "$(@:${STATIC_ROOT}%.html=%)"
 	@ tinysite render "$(@:${STATIC_ROOT}%=%)" > "$@"
+
+serve : force
+	@ printf "server running on %s\n" "http://$(LISTEN_HOST):$(LISTEN_PORT)/"
+	@ tcpserver -v "$(LISTEN_HOST)" "$(LISTEN_PORT)" tinysite httpd
 
 sync : force
 	rsync -avzp --exclude ".*" "$(OUT)/" "$(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_DIR)/"
