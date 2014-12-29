@@ -17,6 +17,12 @@ CONTENT_FILES = $(shell find ${CONTENT_ROOT} -type f -a -name \*.md -a -not -pat
 PAGES         = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${STATIC_ROOT}/%.html)
 DEPS          = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${BUILD_ROOT}/%.html.d)
 
+### For highlighting.
+
+COLOR_BUILD = \e[36m
+COLOR_SCAN  = \e[35m
+COLOR_RESET = \e[0m
+
 
 all : pages
 
@@ -24,7 +30,10 @@ pages : $(PAGES)
 
 $(STATIC_ROOT)/%.html : $(TEMPLATE_ROOT)/%.html $(CONTENT_ROOT)/%.md
 	@ mkdir -p `dirname "$@"`
-	@ printf "\e[36m%s\e[0m %s\n" "[render]" "$(@:${STATIC_ROOT}%.html=%)"
+	@   test -t 1 && printf "$(COLOR_BUILD)" || true
+	@   printf "[render]"
+	@   test -t 1 && printf "$(COLOR_RESET)" || true
+	@   printf " %s\n" "$(@:${STATIC_ROOT}%.html=%)"
 	@ tinysite render "$(@:${STATIC_ROOT}%=%)" > "$@"
 
 sync : force
@@ -41,7 +50,10 @@ deps : $(DEPS)
 
 $(BUILD_ROOT)/%.html.d : $(TEMPLATE_ROOT)/%.html $(CONTENT_ROOT)/%.md
 	@ mkdir -p `dirname "$@"`
-	@ printf "\e[35m%s\e[0m %s\n" "[scan]" "$(@:${BUILD_ROOT}/%.html.d=/%)"
+	@   test -t 1 && printf "$(COLOR_SCAN)" || true
+	@   printf "[scan]"
+	@   test -t 1 && printf "$(COLOR_RESET)" || true
+	@   printf " %s\n" "$(@:${BUILD_ROOT}/%.html.d=/%)"
 	@ tinysite scan "$(@:${BUILD_ROOT}/%.d=${STATIC_ROOT}/%)" | sed -nEe "p; s@^${STATIC_ROOT}(.+?) :@\n${BUILD_ROOT}\1.d :@p;" > "$@"
 
 ifeq (, $(findstring $(MAKECMDGOALS), clean ))
