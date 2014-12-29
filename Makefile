@@ -20,7 +20,7 @@ REMOTE_DIR    ?=
 LISTEN_HOST    ?= 127.0.0.1
 LISTEN_PORT    ?= 8484
 
-CONTENT_FILES = $(shell find ${CONTENT_ROOT} -type f -a -name \*.md -a -not -path "*/_*/*")
+CONTENT_FILES = $(shell find ${CONTENT_ROOT} -type f -a -name \*.md -a -not -path "*/_*/*" | sort)
 PAGES         = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${STATIC_ROOT}/%.html)
 DEPS          = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${BUILD_ROOT}/%.html.d)
 
