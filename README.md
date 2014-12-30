@@ -4,7 +4,7 @@
 
 ## Who is this for?
 
-**tinysite** is for [https://github.com/jekyll/jekyll](jekyll) users who want a faster edit-preview loop, faster site regeneration, and are more inclined to hack Python than Ruby.
+**tinysite** is for [jekyll](https://github.com/jekyll/jekyll) users who want a faster edit-preview loop, faster site regeneration, and are more inclined to hack Python than Ruby.
 
 ## Features and Goals
 
