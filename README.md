@@ -25,6 +25,7 @@ Debian packaging will be provided.
 - `GNU make` - for build
 - `python 2.6+`
 - `markdown.py` - for content
+- `pygments` - for syntax highlighting content
 - `jinja2` - for templating
 - `simplejson` - for data
 - `http_parser.py` - for local server

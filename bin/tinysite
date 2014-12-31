@@ -3,6 +3,7 @@
 import sys
 import io
 import os
+import re
 import time
 import errno
 import optparse
@@ -16,7 +17,10 @@ from http_parser.util import status_reasons
 from sendfile import sendfile
 from mimetypes import guess_type
 import simplejson as json
-from markdown import Markdown
+import markdown
+import pygments
+import pygments.lexers
+import pygments.formatters
 
 
 def main( argv, stdin, stdout, stderr ):
@@ -466,8 +470,45 @@ class Templater( object ):
 
 def filter_markdown(value):
   if not value: return value
-  md = Markdown()
-  return md.convert(unicode(value))
+
+  value = unicode(value)
+
+  # Recognize {% highlight foo %}...{% endhighlight %} blocks in markdown.
+
+  re_highlight = re.compile(r'''
+    ^
+    \{% \s+ highlight \s+ (?P<language>\S+) \s+ %\}
+    \n
+    (?P<content>.*)
+    \n
+    \{% \s+ endhighlight \s+ %\}
+    $
+  ''', re.S|re.X)
+
+  # Split input into paragraph blocks.
+
+  html = u''
+  normal_paras = []
+  re_para = re.compile(r'\n{2,}')
+  paras = re_para.split(value)
+
+  # Invoke pygments on {% highlight %} blocks.
+  # Accumulate all other blocks and process as markdown.
+
+  while len(paras):
+    p = paras.pop(0)
+    m = re_highlight.match(p)
+    if not m:
+      normal_paras.append(p)
+    if len(normal_paras) and (m or not len(paras)):
+      html += markdown.markdown( '\n\n'.join(normal_paras) )
+      normal_paras = []
+    if m:
+      lexer = pygments.lexers.get_lexer_by_name(m.group('language'))
+      formatter = pygments.formatters.get_formatter_by_name('html')
+      html += pygments.highlight( m.group('content'), lexer, formatter )
+
+  return html
 
 
 def abspath( path ):
