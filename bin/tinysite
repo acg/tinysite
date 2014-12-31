@@ -357,7 +357,7 @@ class Templater( object ):
     # Dynamically load all the templating plugins.
 
     try:
-      import templating.plugins as plugins_package
+      import plugins as plugins_package
     except ImportError as e:
       plugins_package = None
 
@@ -377,7 +377,7 @@ class Templater( object ):
     # Dynamically load all the templating filters.
 
     try:
-      import templating.filters as filters_package
+      import filters as filters_package
     except ImportError as e:
       filters_package = None
 
@@ -654,6 +654,10 @@ class HttpError(Exception):
 # Driver.
 
 if __name__ == '__main__':
-  import sys
+
+  # Load runtime templating extensions from $PWD/plugins and $PWD/filters.
+  cwd = os.getcwd()
+  if not cwd in sys.path: sys.path = [cwd] + sys.path
+
   sys.exit( main( sys.argv, sys.stdin, sys.stdout, sys.stderr ) )
 
