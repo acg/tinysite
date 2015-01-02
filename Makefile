@@ -51,7 +51,7 @@ sync : force
 	rsync -avzp --exclude ".*" "$(OUT)/" "$(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_DIR)/"
 
 clean :
-	@ rm -vf $(PAGES) $(DEPS)
+	@ rm -rvf $(PAGES) $(DEPS) $(BUILD_ROOT)
 
 
 ### Scan templates and content+data for file dependencies.
