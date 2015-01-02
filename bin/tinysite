@@ -60,10 +60,8 @@ def render( config, path ):
 
   path = resolve_path( path )
 
-  # Look for content at same path, but with markdown extension, /foo/bar.html => /foo/bar.md
-  content_path = path
-  if content_path.endswith('.html'):
-    content_path = content_path[0:-5]+'.md'
+  # Look for content at same path, but with markdown extension, /foo/bar.html => /foo/bar.html.md
+  content_path = path+'.md'
 
   # Load the template.
   templater = Templater([ config.template_root ])
@@ -225,12 +223,9 @@ def scan( config, path ):
   # Reconstruct paths
 
   static_path   = config.static_root + path
-  content_path  = config.content_root + path
+  content_path  = config.content_root + path + '.md'
   template_path = config.template_root + path
   dependencies = []
-
-  if content_path.endswith(".html"):
-    content_path = content_path[:-5]+".md"
 
   # Scan for content dependencies.
 

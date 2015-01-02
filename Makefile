@@ -21,8 +21,8 @@ LISTEN_HOST    ?= 127.0.0.1
 LISTEN_PORT    ?= 8484
 
 CONTENT_FILES = $(shell find ${CONTENT_ROOT} -type f -a -name \*.md -a -not -path "*/_*/*" | sort)
-PAGES         = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${STATIC_ROOT}/%.html)
-DEPS          = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${BUILD_ROOT}/%.html.d)
+PAGES         = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${STATIC_ROOT}/%)
+DEPS          = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${BUILD_ROOT}/%.d)
 
 ### For build rule highlighting.
 
@@ -38,9 +38,9 @@ all : pages
 
 pages : $(PAGES)
 
-$(STATIC_ROOT)/%.html : $(TEMPLATE_ROOT)/%.html $(CONTENT_ROOT)/%.md
+$(STATIC_ROOT)/% : $(TEMPLATE_ROOT)/% $(CONTENT_ROOT)/%.md
 	@ mkdir -p `dirname "$@"`
-	@ $(HIGHLIGHT_BUILD) render "$(@:${STATIC_ROOT}%.html=%)"
+	@ $(HIGHLIGHT_BUILD) render "$(@:${STATIC_ROOT}%=%)"
 	@ tinysite render "$(@:${STATIC_ROOT}%=%)" > "$@"
 
 serve : force
@@ -59,9 +59,9 @@ clean :
 
 deps : $(DEPS)
 
-$(BUILD_ROOT)/%.html.d : $(TEMPLATE_ROOT)/%.html $(CONTENT_ROOT)/%.md
+$(BUILD_ROOT)/%.d : $(TEMPLATE_ROOT)/% $(CONTENT_ROOT)/%.md
 	@ mkdir -p `dirname "$@"`
-	@ $(HIGHLIGHT_SCAN) scan "$(@:${BUILD_ROOT}/%.html.d=/%)"
+	@ $(HIGHLIGHT_SCAN) scan "$(@:${BUILD_ROOT}/%.d=/%)"
 	@ tinysite scan "$(@:${BUILD_ROOT}/%.d=${STATIC_ROOT}/%)" | sed -nEe "p; s@^${STATIC_ROOT}(.+?) :@\n${BUILD_ROOT}\1.d :@p;" > "$@"
 
 ifeq (, $(findstring $(MAKECMDGOALS), clean ))
