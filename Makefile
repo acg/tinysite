@@ -30,6 +30,9 @@ COLOR_BUILD = \e[36m
 COLOR_SCAN  = \e[35m
 COLOR_RESET = \e[0m
 
+HIGHLIGHT_BUILD = sh -c 'test -t 1 && exec printf "$$0" "$$@" || exec printf "[%s] %s\n" "$$@"; }' "$(COLOR_BUILD)[%s]$(COLOR_RESET) %s\n"
+HIGHLIGHT_SCAN  = sh -c 'test -t 1 && exec printf "$$0" "$$@" || exec printf "[%s] %s\n" "$$@"; }' "$(COLOR_SCAN)[%s]$(COLOR_RESET) %s\n"
+
 
 all : pages
 
@@ -37,10 +40,7 @@ pages : $(PAGES)
 
 $(STATIC_ROOT)/%.html : $(TEMPLATE_ROOT)/%.html $(CONTENT_ROOT)/%.md
 	@ mkdir -p `dirname "$@"`
-	@   test -t 1 && printf "$(COLOR_BUILD)" || true
-	@   printf "[render]"
-	@   test -t 1 && printf "$(COLOR_RESET)" || true
-	@   printf " %s\n" "$(@:${STATIC_ROOT}%.html=%)"
+	@ $(HIGHLIGHT_BUILD) render "$(@:${STATIC_ROOT}%.html=%)"
 	@ tinysite render "$(@:${STATIC_ROOT}%=%)" > "$@"
 
 serve : force
@@ -61,10 +61,7 @@ deps : $(DEPS)
 
 $(BUILD_ROOT)/%.html.d : $(TEMPLATE_ROOT)/%.html $(CONTENT_ROOT)/%.md
 	@ mkdir -p `dirname "$@"`
-	@   test -t 1 && printf "$(COLOR_SCAN)" || true
-	@   printf "[scan]"
-	@   test -t 1 && printf "$(COLOR_RESET)" || true
-	@   printf " %s\n" "$(@:${BUILD_ROOT}/%.html.d=/%)"
+	@ $(HIGHLIGHT_SCAN) scan "$(@:${BUILD_ROOT}/%.html.d=/%)"
 	@ tinysite scan "$(@:${BUILD_ROOT}/%.d=${STATIC_ROOT}/%)" | sed -nEe "p; s@^${STATIC_ROOT}(.+?) :@\n${BUILD_ROOT}\1.d :@p;" > "$@"
 
 ifeq (, $(findstring $(MAKECMDGOALS), clean ))
