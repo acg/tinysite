@@ -71,6 +71,7 @@ def render( config, path ):
   # Load the content
   data, content = load_content( config.content_root+'/'+content_path )
   data['content'] = content
+  data['uri'] = path
 
   # Render and output the template.
   output = template.render( **data ).encode('utf-8')
