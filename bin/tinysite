@@ -6,6 +6,7 @@ import os
 import re
 import time
 import errno
+import codecs
 import optparse
 from os.path import normpath, relpath, dirname, splitext
 import pkgutil
@@ -103,7 +104,7 @@ def load_content( content_path, expand=True ):
   in_header = False
   data = ''
   content = ''
-  with file(content_path) as f:
+  with codecs.open(content_path,'r','utf-8') as f:
     for linenum, line in enumerate(f):
       # Skip an initial blank line.
       if linenum == 0 and line == '\n':
