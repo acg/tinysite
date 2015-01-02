@@ -86,11 +86,14 @@ def resolve_path( path ):
   elif path == '.':
     path = ''
   path = '/'+path
+  if original_path.endswith('/') and path != '/':
+    path = path+'/'
 
-  # Turn trailing slash into .html, /foo/bar/ => /foo/bar.html
+  # Turn trailing slash into .html, eg /foo/bar/ => /foo/bar.html
+  # Also turn extensionless urls into .html, eg /foo/bar-baz => /foo/bar-baz.html
   if path == '/':
     path = '/index.html'
-  elif path.endswith('/'):
+  elif path.endswith('/') or path.split('/')[-1].find('.') < 0:
     path = path.rstrip('/')+'.html'
 
   return path
