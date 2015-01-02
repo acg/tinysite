@@ -272,17 +272,20 @@ def http_serve( config, stdin, stdout ):
     if request_method != 'GET':
       raise HttpError(405)
 
-    path = resolve_path(request_path)
-    mimetype = guess_type(path)[0]
+    if request_path.endswith('/'):
+      http_respond( stdout, 301, location=request_path.rstrip('/'), body='' )
+    else:
+      path = resolve_path(request_path)
+      mimetype = guess_type(path)[0]
 
-    try:
-      output = render( config, request_path )
-      http_respond( stdout, 200, mimetype=mimetype, body=output )
-    except TemplateNotFound as e:
-      # Retry as static file.
-      full_static_path = config.static_root + path
-      with file( full_static_path ) as static_file:
-        http_respond( stdout, 200, mimetype=mimetype, body=static_file )
+      try:
+        output = render( config, request_path )
+        http_respond( stdout, 200, mimetype=mimetype, body=output )
+      except TemplateNotFound as e:
+        # Retry as static file.
+        full_static_path = config.static_root + path
+        with file( full_static_path ) as static_file:
+          http_respond( stdout, 200, mimetype=mimetype, body=static_file )
 
     success = True
 
@@ -303,7 +306,7 @@ def http_serve( config, stdin, stdout ):
   return success
 
 
-def http_respond( out, status, reason=None, version="HTTP/1.0", body=None, length=None, mimetype='text/html' ):
+def http_respond( out, status, reason=None, version="HTTP/1.0", body=None, length=None, mimetype='text/html', location=None ):
   # TODO prevent headers from being emitted a second time
 
   reason = reason or status_reasons[status]
@@ -326,6 +329,7 @@ def http_respond( out, status, reason=None, version="HTTP/1.0", body=None, lengt
   print >> out, "Content-Type: %s\r\n" % (mimetype),
   print >> out, "Connection: close\r\n",
   print >> out, "Date: %s\r\n" % time.strftime("%a, %d %b %Y %T %z"),
+  if location: print >> out, "Location: %s\r\n" % location,
   print >> out, "\r\n",
 
   # Output http body, if we have one.
