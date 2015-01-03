@@ -29,5 +29,6 @@ Debian packaging will be provided.
 - `jinja2` - for templating
 - `simplejson` - for data
 - `http_parser.py` - for local server
+- `sendfile.py` - for local server
 - `ucspi-tcp` - for local server
 
