@@ -34,7 +34,7 @@ HIGHLIGHT_BUILD = sh -c 'test -t 1 && exec printf "$$0" "$$@" || exec printf "[%
 HIGHLIGHT_SCAN  = sh -c 'test -t 1 && exec printf "$$0" "$$@" || exec printf "[%s] %s\n" "$$@"' "$(COLOR_SCAN)[%s]$(COLOR_RESET) %s\n"
 
 
-all : pages
+all :
 
 pages : $(PAGES)
 
