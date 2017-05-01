@@ -475,15 +475,15 @@ def filter_markdown(value):
 
   value = unicode(value)
 
-  # Recognize {% highlight foo %}...{% endhighlight %} blocks in markdown.
+  # Recognize ```lang "fenced code" blocks in markdown.
 
   re_highlight = re.compile(r'''
     ^
-    \{% \s+ highlight \s+ (?P<language>\S+) \s+ %\}
+    ```(?P<language>\S+) \s*
     \n
     (?P<content>.*)
     \n
-    \{% \s+ endhighlight \s+ %\}
+    ```
     $
   ''', re.S|re.X)
 
