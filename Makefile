@@ -3,7 +3,7 @@ all : compiled-python
 
 ### Compile all python modules ahead of time.
 
-PYTHON_SOURCE_FILES   := $(shell find lib -type f -a -name "*.py" -a -not -name ".*")
+PYTHON_SOURCE_FILES   := $(shell find lib plugins filters -type f -a -name "*.py" -a -not -name ".*")
 PYTHON_COMPILED_FILES := $(PYTHON_SOURCE_FILES:%.py=%.pyo)
 
 compiled-python : $(PYTHON_COMPILED_FILES)
