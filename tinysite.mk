@@ -20,18 +20,18 @@ REMOTE_DIR    ?=
 LISTEN_HOST    ?= 127.0.0.1
 LISTEN_PORT    ?= 8484
 
-CONTENT_FILES = $(shell find ${CONTENT_ROOT} -type f -a -name \*.md -a -not -path "*/_*/*" | sort)
-PAGES         = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${STATIC_ROOT}/%)
-DEPS          = $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${BUILD_ROOT}/%.d)
+CONTENT_FILES := $(shell find ${CONTENT_ROOT} -type f -a -name \*.md -a -not -path "*/_*/*" | sort)
+PAGES         := $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${STATIC_ROOT}/%)
+DEPS          := $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${BUILD_ROOT}/%.d)
 
 ### For build rule highlighting.
 
-COLOR_BUILD = \e[36m
-COLOR_SCAN  = \e[35m
-COLOR_RESET = \e[0m
+COLOR_BUILD := \e[36m
+COLOR_SCAN  := \e[35m
+COLOR_RESET := \e[0m
 
-HIGHLIGHT_BUILD = sh -c 'test -t 1 && exec printf "$$0" "$$@" || exec printf "[%s] %s\n" "$$@"' "$(COLOR_BUILD)[%s]$(COLOR_RESET) %s\n"
-HIGHLIGHT_SCAN  = sh -c 'test -t 1 && exec printf "$$0" "$$@" || exec printf "[%s] %s\n" "$$@"' "$(COLOR_SCAN)[%s]$(COLOR_RESET) %s\n"
+HIGHLIGHT_BUILD := sh -c 'test -t 1 && exec printf "$$0" "$$@" || exec printf "[%s] %s\n" "$$@"' "$(COLOR_BUILD)[%s]$(COLOR_RESET) %s\n"
+HIGHLIGHT_SCAN  := sh -c 'test -t 1 && exec printf "$$0" "$$@" || exec printf "[%s] %s\n" "$$@"' "$(COLOR_SCAN)[%s]$(COLOR_RESET) %s\n"
 
 
 all : pages
