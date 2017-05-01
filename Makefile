@@ -13,7 +13,7 @@ compiled-python : $(PYTHON_COMPILED_FILES)
 
 
 clean :
-	rm -f $(PYTHON_COMPILED_FILES)
+	@ rm -v -f $(PYTHON_COMPILED_FILES)
 
 
 .PHONY : clean force
