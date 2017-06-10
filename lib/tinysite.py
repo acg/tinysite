@@ -15,7 +15,10 @@ import jinja2.meta
 from jinja2.exceptions import TemplateNotFound
 from http_parser.http import HttpStream, HTTP_REQUEST
 from http_parser.util import status_reasons
-from sendfile import sendfile
+try:
+  from sendfile import sendfile
+except:
+  sendfile = None
 from mimetypes import guess_type
 import simplejson as json
 import markdown
@@ -338,7 +341,11 @@ def http_respond( out, status, reason=None, version="HTTP/1.0", body=None, lengt
     wfd = out.fileno()
     offset = 0
     while length > 0:
-      sent = sendfile( wfd, rfd, offset, length )
+      if sendfile:
+        sent = sendfile( wfd, rfd, offset, length )
+      else:
+        chunk = os.read( rfd, min(length, 4096) )
+        sent = os.write( wfd, chunk )
       if sent == 0: break
       offset += sent
       length -= sent
