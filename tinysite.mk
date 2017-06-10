@@ -62,7 +62,7 @@ deps : $(DEPS)
 $(BUILD_ROOT)/%.d : $(TEMPLATE_ROOT)/% $(CONTENT_ROOT)/%.md
 	@ mkdir -p `dirname "$@"`
 	@ $(HIGHLIGHT_SCAN) scan "$(@:${BUILD_ROOT}/%.d=/%)"
-	@ tinysite scan "$(@:${BUILD_ROOT}/%.d=${STATIC_ROOT}/%)" | sed -nEe "p; s@^${STATIC_ROOT}(.+?) :@\n${BUILD_ROOT}\1.d :@p;" > "$@"
+	@ tinysite scan "$(@:${BUILD_ROOT}/%.d=${STATIC_ROOT}/%)" | sed -nEe "p; s@^${STATIC_ROOT}([^ ]+) :@\n${BUILD_ROOT}\1.d :@p;" > "$@"
 
 ifeq (, $(findstring $(MAKECMDGOALS), clean ))
   -include $(DEPS)
