@@ -508,6 +508,7 @@ def filter_markdown(value):
     p = paras.pop(0)
     m = re_highlight.match(p)
     if not m:
+      p = filter_normal_paragraph(p)
       normal_paras.append(p)
     if len(normal_paras) and (m or not len(paras)):
       html += markdown.markdown( '\n\n'.join(normal_paras) )
@@ -521,6 +522,11 @@ def filter_markdown(value):
       html += pygments.highlight( m.group('content'), lexer, formatter )
 
   return html
+
+
+def filter_normal_paragraph( value ):
+  re_strikethrough = re.compile(r'(^|\s)~~([^~]+?)~~($|\s)')
+  return re.sub(re_strikethrough, r'\1<strike>\2</strike>\3', value)
 
 
 def abspath( path ):
