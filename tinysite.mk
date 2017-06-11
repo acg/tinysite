@@ -26,9 +26,9 @@ DEPS          := $(CONTENT_FILES:${CONTENT_ROOT}/%.md=${BUILD_ROOT}/%.d)
 
 ### For build rule highlighting.
 
-COLOR_BUILD := \e[36m
-COLOR_SCAN  := \e[35m
-COLOR_RESET := \e[0m
+COLOR_BUILD := \033[36m
+COLOR_SCAN  := \033[35m
+COLOR_RESET := \033[0m
 
 HIGHLIGHT_BUILD := sh -c 'test -t 1 && exec printf "$$0" "$$@" || exec printf "[%s] %s\n" "$$@"' "$(COLOR_BUILD)[%s]$(COLOR_RESET) %s\n"
 HIGHLIGHT_SCAN  := sh -c 'test -t 1 && exec printf "$$0" "$$@" || exec printf "[%s] %s\n" "$$@"' "$(COLOR_SCAN)[%s]$(COLOR_RESET) %s\n"
