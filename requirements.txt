@@ -1,0 +1,6 @@
+markdown>=2.4
+pygments>=1.6
+jinja2>=2.7
+simplejson>=3.3
+http_parser>=0.8
+pysendfile>=2.0
