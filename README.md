@@ -20,15 +20,8 @@
 
 ## Requirements
 
-Debian packaging will be provided.
-
-- `GNU make` - for build
-- `python 2.6+`
-- `markdown.py` - for content
-- `pygments` - for syntax highlighting content
-- `jinja2` - for templating
-- `simplejson` - for data
-- `http_parser.py` - for local server
-- `sendfile.py` - for local server
-- `ucspi-tcp` - for local server
+- `python2.6+`
+- `pip` - run `pip install -r requirements.txt` for python dependencies
+- [`GNU make`](https://www.gnu.org/software/make/) - for build
+- [`ucspi-tcp`](http://cr.yp.to/ucspi-tcp.html) - for dynamic preview
 
