@@ -22,6 +22,9 @@ except:
 from mimetypes import guess_type
 import simplejson as json
 import markdown
+import pygments
+import pygments.lexers
+import pygments.formatters
 
 
 def main( argv, stdin, stdout, stderr ):
@@ -482,51 +485,43 @@ def filter_markdown(value):
 
   value = unicode(value)
 
-  # Recognize ```lang "fenced code" blocks in markdown.
+  # Recognize ```lang fenced code blocks in markdown.
 
-  re_highlight = re.compile(r'''
-    ^
+  re_fenced_code = re.compile(r'''
+  ^
     ```(?P<language>\S+) \s*
     \n
     (?P<content>.*)
     \n
     ```
-    $
+  $
   ''', re.S|re.X)
 
-  # Split input into paragraph blocks.
+  re_fenced_code_split = re.compile(r'''
+  (
+    ```\S+ \s*
+    \n
+    .*?
+    \n
+    ```
+  )
+  ''', re.S|re.X)
 
-  html = u''
-  normal_paras = []
-  re_para = re.compile(r'\n{2,}')
-  paras = re_para.split(value)
+  re_strikethrough = re.compile(r'(^|\s)~~([^~]+?)~~($|\s)')
 
-  # Invoke pygments on {% highlight %} blocks.
-  # Accumulate all other blocks and process as markdown.
+  html = []
 
-  while len(paras):
-    p = paras.pop(0)
-    m = re_highlight.match(p)
-    if not m:
-      p = filter_normal_paragraph(p)
-      normal_paras.append(p)
-    if len(normal_paras) and (m or not len(paras)):
-      html += markdown.markdown( '\n\n'.join(normal_paras) )
-      normal_paras = []
-    if m:
-      import pygments
-      import pygments.lexers
-      import pygments.formatters
+  for i, block in enumerate(re_fenced_code_split.split(value)):
+    if i % 2:  # fenced code
+      m = re_fenced_code.match(block)
       lexer = pygments.lexers.get_lexer_by_name(m.group('language'))
       formatter = pygments.formatters.get_formatter_by_name('html')
-      html += pygments.highlight( m.group('content'), lexer, formatter )
+      html.append(pygments.highlight(m.group('content'), lexer, formatter))
+    else:      # regular markdown content
+      block = re.sub(re_strikethrough, r'\1<strike>\2</strike>\3', block)
+      html.append(markdown.markdown(block))
 
-  return html
-
-
-def filter_normal_paragraph( value ):
-  re_strikethrough = re.compile(r'(^|\s)~~([^~]+?)~~($|\s)')
-  return re.sub(re_strikethrough, r'\1<strike>\2</strike>\3', value)
+  return u''.join(html)
 
 
 def abspath( path ):
