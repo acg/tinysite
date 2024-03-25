@@ -519,7 +519,7 @@ def filter_markdown(value):
       html.append(pygments.highlight(m.group('content'), lexer, formatter))
     else:      # regular markdown content
       block = re.sub(re_strikethrough, r'\1<strike>\2</strike>\3', block)
-      html.append(markdown.markdown(block))
+      html.append(markdown.markdown(block, extensions=['toc']))
 
   return u''.join(html)
 
