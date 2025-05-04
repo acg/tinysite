@@ -1,22 +1,21 @@
+SHELL = /usr/bin/env bash
+
+
 all : compiled-python
 
+compiled-python : remove-stale-pyc
+	python3 -m compileall -j 0 lib
 
-### Compile all python modules ahead of time.
+remove-stale-pyc : remove-stale-py2-pyc remove-stale-py3-pyc
 
-PYTHON_SOURCE_FILES   := $(shell find lib plugins filters -type f -a -name "*.py" -a -not -name ".*")
-PYTHON_COMPILED_FILES := $(PYTHON_SOURCE_FILES:%.py=%.pyo)
+remove-stale-py2-pyc : force
+	find lib -name \*.pyc -a -not -path "*/__pycache__/*" | xargs --no-run-if-empty rm -v
 
-compiled-python : $(PYTHON_COMPILED_FILES)
-
-%.pyo : %.py
-	python -O -m py_compile $<
-
-
-clean :
-	@ rm -v -f $(PYTHON_COMPILED_FILES)
+remove-stale-py3-pyc : force
+	find lib -path "*/__pycache__/*.pyc" | while read cfile; do sfile="$$cfile"; sfile="$${sfile/__pycache__?/}"; sfile="$${sfile%%.cpython-*.pyc}.py"; test -e "$$sfile" || echo "$$cfile"; done | xargs --no-run-if-empty rm -v
 
 
-.PHONY : clean force
+.PHONY : force
 
 ### Delete $@ if a rule fails. GNU make-specific.
 .DELETE_ON_ERROR :

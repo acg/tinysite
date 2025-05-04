@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import re
 
 def sp2nbsp(value):
   if not value: return value
-  return unicode(value).replace('  ','&nbsp;')
+  return str(value).replace('  ','&nbsp;')
 
