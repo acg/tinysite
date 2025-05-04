@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import io
@@ -10,6 +10,7 @@ import codecs
 import optparse
 from os.path import normpath, relpath, dirname, splitext
 import pkgutil
+from importlib import import_module
 import jinja2
 import jinja2.meta
 from jinja2.exceptions import TemplateNotFound
@@ -21,10 +22,12 @@ except:
   sendfile = None
 from mimetypes import guess_type
 import simplejson as json
+from functools import cmp_to_key
 import markdown
 import pygments
 import pygments.lexers
 import pygments.formatters
+
 
 
 def main( argv, stdin, stdout, stderr ):
@@ -38,21 +41,21 @@ def main( argv, stdin, stdout, stderr ):
   opts, args = optp.parse_args( args=argv[1:] )
 
   config = Record()
-  config.update(vars(opts).items())
+  config.update(list(vars(opts).items()))
 
   command = args.pop(0) if len(args) else None
 
   if command == 'render':
-    print >> stdout, render( config, args.pop(0) )
+    print(render( config, args.pop(0) ), file=stdout)
     ok = True
   elif command == 'scan':
     for srcpath, dstpath in scan( config, args.pop(0) ):
-      print "%s : %s\n\n" % (srcpath,dstpath),
+      print("%s : %s\n\n" % (srcpath,dstpath), end=' ')
     ok = True
   elif command == 'httpd':
     ok = http_serve( config, stdin, stdout )
   else:
-    print >> stderr, "unknown command"
+    print("unknown command", file=stderr)
     ok = False
 
   return 0 if ok else 100
@@ -77,7 +80,7 @@ def render( config, path ):
   data['uri'] = path
 
   # Render and output the template.
-  output = template.render( **data ).encode('utf-8')
+  output = template.render( **data )
   return output
 
 
@@ -141,12 +144,12 @@ def expand_data( data, filepath ):
 
     for relpath in [ "%s/%s" % (cwd,incpath) for incpath in data ]:
       if relpath.endswith('.json'):
-        with file(relpath) as f:
+        with open(relpath) as f:
           d = json.load(f)
         if directive != '#load':
           expand_data( d, relpath )
       else:
-        with file(relpath) as f:
+        with open(relpath) as f:
           d = f.read()
       incdata = dmerge( incdata, d )
 
@@ -180,7 +183,7 @@ def scan_data( data, filepath, dependencies=None, scanned=None, recurse=True ):
       if relpath in scanned: continue
       if not recurse: continue
       if relpath.endswith('.json') and directive != '#load':
-        with file(relpath) as f:
+        with open(relpath) as f:
           d = json.load(f)
           scan_data( d, relpath, dependencies, scanned, recurse )
 
@@ -258,8 +261,8 @@ def scan( config, path ):
 def http_serve( config, stdin, stdout ):
 
   # Re-open the stdin and stdout file descriptors using raw unbuffered i/o.
-  stdin = io.FileIO( stdin.fileno() )
-  stdout = io.FileIO( stdout.fileno(), 'w' )
+  stdin = io.FileIO( stdin.fileno(), 'rb' )
+  stdout = io.FileIO( stdout.fileno(), 'wb' )
 
   # Parse an HTTP request on stdin.
   parser = HttpStream( stdin, kind=HTTP_REQUEST )
@@ -288,7 +291,7 @@ def http_serve( config, stdin, stdout ):
       except TemplateNotFound as e:
         # Retry as static file.
         full_static_path = config.static_root + path
-        with file( full_static_path ) as static_file:
+        with open( full_static_path, 'rb' ) as static_file:
           http_respond( stdout, 200, mimetype=mimetype, body=static_file )
 
     success = True
@@ -321,25 +324,26 @@ def http_respond( out, status, reason=None, version="HTTP/1.0", body=None, lengt
 
   # Calculate content length from body.
   if length == None:
-    if isinstance(body,basestring):
+    if isinstance(body, bytes) or isinstance(body, str):
       length = len(body)
-    elif isinstance(body,file):
-      stat = os.fstat(body.fileno())
-      length = stat.st_size
+    elif isinstance(body, io.IOBase):
+      length = os.fstat(body.fileno()).st_size
 
   # Output http headers.
-  print >> out, "%s %s %s\r\n" % (version, status, reason),
-  print >> out, "Content-Length: %d\r\n" % (length),
-  print >> out, "Content-Type: %s\r\n" % (mimetype),
-  print >> out, "Connection: close\r\n",
-  print >> out, "Date: %s\r\n" % time.strftime("%a, %d %b %Y %T %z"),
-  if location: print >> out, "Location: %s\r\n" % location,
-  print >> out, "\r\n",
+  out.write(("%s %s %s\r\n" % (version, status, reason)).encode())
+  out.write(("Content-Length: %d\r\n" % length).encode())
+  out.write(("Content-Type: %s\r\n" % mimetype).encode())
+  out.write(("Connection: close\r\n").encode())
+  out.write(("Date: %s\r\n" % time.strftime("%a, %d %b %Y %T %z")).encode())
+  if location: out.write(("Location: %s\r\n" % location).encode())
+  out.write("\r\n".encode())
 
   # Output http body, if we have one.
-  if isinstance(body,basestring):
-    print >> out, body,
-  elif isinstance(body,file):
+  if isinstance(body, bytes):
+    out.write(body)
+  elif isinstance(body, str):
+    out.write(body.encode())
+  elif isinstance(body, io.IOBase):
     rfd = body.fileno()
     wfd = out.fileno()
     offset = 0
@@ -417,7 +421,7 @@ class Templater( object ):
 
     # Set up and create a template object.
 
-    jinja_env = self.get_environment( autoescape=(ext in ('.html','.xml')), extensions=['jinja2.ext.autoescape'], other_globals=other_globals )
+    jinja_env = self.get_environment( autoescape=(ext in ('.html','.xml')), extensions=[], other_globals=other_globals )
     jinja_template = jinja_env.get_template( template )
 
     return jinja_template
@@ -433,7 +437,7 @@ class Templater( object ):
     cwd = dirname(templatepath)
 
     jinja_env = self.get_environment()
-    source = file(templatepath).read()
+    source = open(templatepath).read()
     jinja_ast = jinja_env.parse( source, filename=templatepath )
 
     for refpath in list(jinja2.meta.find_referenced_templates(jinja_ast)):
@@ -483,7 +487,7 @@ class Templater( object ):
 def filter_markdown(value):
   if not value: return value
 
-  value = unicode(value)
+  value = str(value)
 
   # Recognize ```lang fenced code blocks in markdown.
 
@@ -521,7 +525,7 @@ def filter_markdown(value):
       block = re.sub(re_strikethrough, r'\1<strike>\2</strike>\3', block)
       html.append(markdown.markdown(block, extensions=['toc']))
 
-  return u''.join(html)
+  return ''.join(html)
 
 
 def abspath( path ):
@@ -539,12 +543,9 @@ class RelativeEnvironment(jinja2.Environment):
 
 
 def iter_package_modules( pkg ):
-  for importer, modname, _ in pkgutil.iter_modules( pkg.__path__ ):
-    full_package_name = "%s.%s" % ( pkg.__name__, modname )
-    if full_package_name not in sys.modules:
-      module = importer.find_module(modname).load_module(full_package_name)
-      yield module, modname
-
+  for modinfo in pkgutil.iter_modules(pkg.__path__):
+    module = import_module("%s.%s" % (pkg.__name__, modinfo.name))
+    yield module, modinfo.name
 
 # Operations on nested data structures.
 
@@ -552,8 +553,8 @@ def dmerge( d1, d2, **opts ):
 
   if isinstance(d1,dict) and isinstance(d2,dict):
 
-    d3 = dict(d1.items())
-    for k,v in d2.items():
+    d3 = dict(list(d1.items()))
+    for k,v in list(d2.items()):
       d3[k] = dmerge(d3.get(k,None),v,**opts)
 
   elif isinstance(d1,list) and isinstance(d2,list):
@@ -566,7 +567,7 @@ def dmerge( d1, d2, **opts ):
       d3 = d2[:] + d1[:]
     else:
       d3 = [None] * max(len(d1),len(d2))
-      for i in xrange(0,len(d3)):
+      for i in range(0,len(d3)):
         if i < len(d1) and i < len(d2):
           d3[i] = dmerge(d1[i],d2[i],**opts) if list_strategy == 'merge' else d2[i]
         elif i < len(d1):
@@ -584,7 +585,7 @@ def dmerge( d1, d2, **opts ):
 
 
 def dset( data, path, value, delim="." ):
-  if isinstance(path,basestring):
+  if isinstance(path,str):
     path = path.split(delim)
   if len(path) == 0:
     return data
@@ -603,7 +604,7 @@ def dset( data, path, value, delim="." ):
       path[0] = path[0][1:-1]
       wantlist = True
     atpath = data.get(path[0],None)
-    if not isinstance(atpath,(dict,list,)):
+    if not isinstance(atpath,(dict,list)):
       if wantlist:
         data[path[0]] = []
       else:
@@ -638,7 +639,7 @@ def dwalk_dict( data, visitor, orderer, path ):
 
   d = {}
 
-  for k in sorted( data.keys(), cmp=orderer ):
+  for k in sorted( list(data.keys()), key=cmp_to_key(orderer) ):
     v = data[k]
     r = dwalk( v, visitor, orderer, path+[k] ) or DOP(op=None)
 
@@ -660,7 +661,7 @@ def dwalk_list( data, visitor, orderer, path ):
 
   d = []
 
-  for i in xrange(len(data)):
+  for i in range(len(data)):
     v = data[i]
     r = dwalk( v, visitor, orderer, path+[i] ) or DOP(op=None)
 
@@ -683,6 +684,10 @@ class DOP( object ):
     self.op = op
     self.key = key
     self.val = val
+
+
+def cmp(a, b):
+  return (a > b) - (a < b)
 
 
 # Convenience class. A dict that allows foo.bar instead of just foo["bar"].

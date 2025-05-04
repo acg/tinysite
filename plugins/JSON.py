@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import simplejson as json
 
@@ -16,6 +16,6 @@ def decode(string,**kwargs):
 
 
 def load(filename,**kwargs):
-  return json.load(file(filename),**kwargs)
+  return json.load(open(filename),**kwargs)
 
 

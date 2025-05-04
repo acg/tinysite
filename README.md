@@ -20,7 +20,7 @@
 
 ## Requirements
 
-- `python2.6+`
+- `python3.8+`
 - `pip` - run `pip install -r requirements.txt` for python dependencies
 - [`GNU make`](https://www.gnu.org/software/make/) - for build
 - [`ucspi-tcp`](http://cr.yp.to/ucspi-tcp.html) - for dynamic preview

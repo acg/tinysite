@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import re
 
@@ -11,7 +11,7 @@ def html_para(value):
     This version assumes autoescape is enabled.
   """
   if not value: return value
-  para = _paragraph_re.split(unicode(value))
-  result = u'\n\n'.join(u'<p>%s</p>' % p.replace(u'\n', u'<br/>\n') for p in para)
+  para = _paragraph_re.split(str(value))
+  result = '\n\n'.join('<p>%s</p>' % p.replace('\n', '<br/>\n') for p in para)
   return result
 

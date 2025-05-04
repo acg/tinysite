@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import re
 
 def nl2br(value):
   if not value: return value
-  return unicode(value).replace('\n','<br/>')
+  return str(value).replace('\n','<br/>')
 
