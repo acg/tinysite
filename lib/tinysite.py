@@ -320,9 +320,13 @@ def http_respond( out, status, reason=None, version="HTTP/1.0", body=None, lengt
   if body == None and status >= 400:
     body = "<html><body><h1>%d %s</h1></body></html>" % (status, reason)
 
+  # Encode string bodies as bytes.
+  if isinstance(body, str):
+    body = body.encode()
+
   # Calculate content length from body.
   if length == None:
-    if isinstance(body, bytes) or isinstance(body, str):
+    if isinstance(body, bytes):
       length = len(body)
     elif isinstance(body, io.IOBase):
       length = os.fstat(body.fileno()).st_size
@@ -338,9 +342,10 @@ def http_respond( out, status, reason=None, version="HTTP/1.0", body=None, lengt
 
   # Output http body, if we have one.
   if isinstance(body, bytes):
-    out.write(body)
-  elif isinstance(body, str):
-    out.write(body.encode())
+    while length > 0:
+      written = out.write(body)
+      length -= written
+      body = body[written:]
   elif isinstance(body, io.IOBase):
     rfd = body.fileno()
     wfd = out.fileno()
