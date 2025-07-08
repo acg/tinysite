@@ -16,10 +16,7 @@ import jinja2.meta
 from jinja2.exceptions import TemplateNotFound
 from http_parser.http import HttpStream, HTTP_REQUEST
 from http_parser.util import status_reasons
-try:
-  from sendfile import sendfile
-except:
-  sendfile = None
+from os import sendfile
 from mimetypes import guess_type
 import simplejson as json
 from functools import cmp_to_key
