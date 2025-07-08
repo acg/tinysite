@@ -24,6 +24,7 @@ from mimetypes import guess_type
 import simplejson as json
 from functools import cmp_to_key
 import markdown
+from markdown.extensions.toc import TocExtension
 import pygments
 import pygments.lexers
 import pygments.formatters
@@ -523,7 +524,7 @@ def filter_markdown(value):
       html.append(pygments.highlight(m.group('content'), lexer, formatter))
     else:      # regular markdown content
       block = re.sub(re_strikethrough, r'\1<strike>\2</strike>\3', block)
-      html.append(markdown.markdown(block, extensions=['toc']))
+      html.append(markdown.markdown(block, extensions=[TocExtension(anchorlink=True)]))
 
   return ''.join(html)
 
