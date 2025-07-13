@@ -277,7 +277,7 @@ def http_serve( config, stdin, stdout ):
     if request_method != 'GET':
       raise HttpError(405)
 
-    if request_path.endswith('/'):
+    if request_path.endswith('/') and request_path != '/':
       http_respond( stdout, 301, location=request_path.rstrip('/'), body='' )
     else:
       path = resolve_path(request_path)
